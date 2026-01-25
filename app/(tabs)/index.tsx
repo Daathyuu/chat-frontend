@@ -1,98 +1,204 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import DrinkSetCard from '@/components/drinkMenuItem';
+import FeaturedCard from '@/components/featuredCard';
+import HomeSlider from '@/components/homeSlider';
+import ServiceCategoryCard from '@/components/serviceCategoryCard';
+import { Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
+const DEFAULT_SLIDES = [
+  { id: '1', image: 'https://picsum.photos/800/400?1' },
+  { id: '2', image: 'https://picsum.photos/800/400?2' },
+  { id: '3', image: 'https://picsum.photos/800/400?3' },
+];
+const FEATURED = [
+  {
+    id: 'd1',
+    name: 'Ari',
+    role: 'Strip dancer',
+    rating: 4.9,
+    avatar: 'https://i.pravatar.cc/150?img=12',
+  },
+  {
+    id: 'd2',
+    name: 'Luna',
+    role: 'Strip dancer',
+    rating: 4.8,
+    avatar: 'https://i.pravatar.cc/150?img=13',
+  },
+  {
+    id: 'd3',
+    name: 'Luna',
+    role: 'Strip dancer',
+    rating: 4.8,
+    avatar: 'https://i.pravatar.cc/150?img=14',
+  },
+  {
+    id: 'd4',
+    name: 'Luna',
+    role: 'Strip dancer',
+    rating: 4.8,
+    avatar: 'https://i.pravatar.cc/150?img=15',
+  },
+];
+
+const SERVICES = [
+  {
+    id: 's1',
+    title: 'VIP өрөө',
+    subtitle: 'Хувийн орчин, premium үйлчилгээ',
+    icon: '💎',
+    bg: '#6C5CE7',
+    onPress: () => Alert.alert('VIP өрөө', 'VIP захиалга удахгүй'),
+  },
+  {
+    id: 's2',
+    title: 'Private dance',
+    subtitle: '1-on-1 тусгай бүжиг',
+    icon: '🔥',
+    bg: '#E84393',
+    onPress: () => Alert.alert('Private dance', 'Захиалга удахгүй'),
+  },
+  {
+    id: 's3',
+    title: 'Event booking',
+    subtitle: 'Үдэшлэг, эвент захиалах',
+    icon: '🎉',
+    bg: '#00B894',
+    onPress: () => Alert.alert('Event booking', 'Дэлгэрэнгүй удахгүй'),
+  },
+  {
+    id: 's4',
+    title: 'Tips & gifts',
+    subtitle: 'Дэмжлэг, бэлэг илгээх',
+    icon: '🎁',
+    bg: '#0984E3',
+    onPress: () => Alert.alert('Tips & gifts', 'Функц удахгүй'),
+  },
+];
+
+const DRINK_SETS = [
+  {
+    id: 'set1',
+    name: 'Classic Set',
+    desc: '2–3 хүн суухад тохиромжтой',
+    price: '180,000₮',
+    badge: 'POPULAR',
+    items: [
+      'Whiskey x1',
+      'Vodka x1',
+      'Soft drink x2',
+      'Ice + Lemon',
+    ],
+  },
+  {
+    id: 'set2',
+    name: 'VIP Set',
+    desc: 'VIP өрөөнд зориулсан багц',
+    price: '350,000₮',
+    badge: 'VIP',
+    items: [
+      'Premium Whiskey x1',
+      'Champagne x1',
+      'Energy drink x2',
+      'Fruit platter',
+    ],
+  },
+  {
+    id: 'set3',
+    name: 'Party Set',
+    desc: 'Олуулаа суухад',
+    price: '520,000₮',
+    items: [
+      'Vodka x2',
+      'Cocktail pitcher x1',
+      'Soft drink x4',
+      'Ice bucket',
+    ],
+  },
+];
+
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const insets = useSafeAreaInsets();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  return (
+    <ScrollView
+      style={styles.container}
+
+      showsVerticalScrollIndicator={false}
+    >
+      {/* 🔄 Slider */}
+      <HomeSlider />
+
+      {/* ⭐ Featured dancers */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>
+          Өнөөдрийн GIRLS
+        </Text>
+
+        <FlatList
+          data={FEATURED}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <FeaturedCard item={item} />}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        />
+      </View>
+
+      <Text style={[styles.sectionTitle, styles.listTitle]}>
+        Drink Set
+      </Text>
+
+      {DRINK_SETS.map((item) => (
+        <DrinkSetCard key={item.id} item={item} />
+      ))}
+
+      {/* 🧩 Other services */}
+      <Text style={[styles.sectionTitle, styles.listTitle]}>
+        Бусад үйлчилгээ
+      </Text>
+
+      {SERVICES.map((item) => (
+        <ServiceCategoryCard key={item.id} item={item} />
+      ))}
+
+
+    </ScrollView>
   );
 }
-
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#f9f9f9',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+
+  content: {
+    paddingBottom: 24, // 🔥 доод хэсэгт зай
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+
+  section: {
+    marginTop: 16,
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111',
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+
+  listTitle: {
+    marginTop: 24,
+  },
+
+  menuWrapper: {
+    marginTop: 8,
+    marginHorizontal: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    marginBottom: 24,
   },
 });
