@@ -1,27 +1,29 @@
-import Echo from 'laravel-echo';
-import Pusher from 'pusher-js/react-native';
+import Echo from "laravel-echo";
+import Pusher from "pusher-js";
 
-// 🔥 ЗААВАЛ — ганц л удаа, ЗӨВХӨН ЭНД
 (global as any).Pusher = Pusher;
 
 export const echo = new Echo({
-  broadcaster: 'pusher',
+  broadcaster: "reverb", // 🔥 ЧУХАЛ
 
-  key: 'gwbri4nlnyuqq8i3cr9e',
+  key: "local", // ямар ч string байж болно
 
-  // 🔥 Pusher lib cluster шаардана (Reverb-д нөлөөлөхгүй)
-  cluster: 'mt1',
-
-  wsHost: '192.168.1.28',
+  wsHost: "162.43.37.225",
   wsPort: 8080,
-  forceTLS: false,
-  enabledTransports: ['ws'],
+  wssPort: 8080,
 
-  authEndpoint: 'http://192.168.1.27/api/broadcasting/auth',
-  autoConnect: false,
+  forceTLS: false, // 🔥 iOS-д заавал
+  encrypted: false,
+  enabledTransports: ["ws"],
+
+  // 🔥 Auth
+  authEndpoint: "http://162.43.37.225/api/broadcasting/auth",
   auth: {
     headers: {
-      Accept: 'application/json',
+      Accept: "application/json",
+      // Authorization: `Bearer ${token}`, // private channel бол ЗААВАЛ
     },
   },
+
+  autoConnect: false,
 });
