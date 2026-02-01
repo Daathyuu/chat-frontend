@@ -1,12 +1,12 @@
-import ChatBubble from '@/components/chatBubble';
-import ChatHeader from '@/components/chatHeader';
-import ChatInput from '@/components/chatInput';
-import { getMessages } from '@/lib/api';
-import { echo } from '@/lib/echo';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import ChatBubble from '@/components/chatBubble'
+import ChatHeader from '@/components/chatHeader'
+import ChatInput from '@/components/chatInput'
+import { getMe, getMessages } from '@/lib/api'
+import { echo } from '@/lib/echo'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router'
+import { useEffect, useRef, useState } from 'react'
 import {
   Alert,
   FlatList,
@@ -14,119 +14,127 @@ import {
   Platform,
   StyleSheet,
   View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Message = {
-  id: string;
-  text: string;
-  isMe: boolean;
- 
-  created_at: string;
-};
+  id: string
+  text: string
+  isMe: boolean
+  created_at: string
+}
 
 export default function ChatRoomScreen() {
-  const { id, name, avatar } = useLocalSearchParams<{ id: string; name: string; avatar: string }>();
-  const insets = useSafeAreaInsets();
+  const { id } = useLocalSearchParams<{ id: string }>()
+  const insets = useSafeAreaInsets()
 
-  const [messages, setMessages] = useState<Message[]>([]);
-  const myUserIdRef = useRef<number | null>(null);
-  const loadingRef = useRef(false);
+  const [messages, setMessages] = useState<Message[]>([])
+  const myUserIdRef = useRef<number | null>(null)
+  const loadingRef = useRef(false)
 
   /* --------------------------------------------------
-   * 1️⃣ USER ID (1 удаа)
+   * 1️⃣ LOAD USER (getMe)
    * -------------------------------------------------- */
   useEffect(() => {
-    AsyncStorage.getItem('user_id').then((uid) => {
-      myUserIdRef.current = Number(uid);
-    });
-  }, []);
+    if (!id) return
+
+    getMe()
+      .then(user => {
+        myUserIdRef.current = user.id
+        loadMessages(user.id)
+      })
+      .catch(() => {
+        Alert.alert('Алдаа', 'User мэдээлэл авахад алдаа гарлаа')
+      })
+  }, [id])
 
   /* --------------------------------------------------
-   * 2️⃣ FETCH MESSAGES (polling-д ашиглана)
+   * 2️⃣ LOAD HISTORY
    * -------------------------------------------------- */
-  const loadMessages = async () => {
-    if (!id || loadingRef.current) return;
+  const loadMessages = async (myUserId: number) => {
+    if (!id || loadingRef.current) return
 
     try {
-      loadingRef.current = true;
+      loadingRef.current = true
 
-      const data = await getMessages(Number(id));
-      const myUserId = myUserIdRef.current;
+      const data = await getMessages(Number(id))
 
       const mapped: Message[] = data.map((m: any) => ({
         id: String(m.id),
         text: m.message,
         isMe: m.user_id === myUserId,
         created_at: m.created_at,
-      }));
+      }))
 
-      // inverted FlatList тул reverse
-      setMessages(mapped.reverse());
+      // FlatList inverted тул reverse
+      setMessages(mapped.reverse())
     } catch (e: any) {
-      Alert.alert('Алдаа', e.message);
+      Alert.alert('Алдаа', e.message)
     } finally {
-      loadingRef.current = false;
+      loadingRef.current = false
     }
-  };
-
-  /* --------------------------------------------------
-   * 3️⃣ INITIAL LOAD
-   * -------------------------------------------------- */
-  useEffect(() => {
-    loadMessages();
-  }, [id]);
-
-  function formatDateTime(dateString: string) {
-    const d = new Date(dateString);
-
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const h = String(d.getHours()).padStart(2, '0');
-    const min = String(d.getMinutes()).padStart(2, '0');
-
-    return `${y}-${m}-${day} ${h}:${min}`;
   }
 
   /* --------------------------------------------------
-   * 4️⃣ REALTIME LISTENING
+   * 3️⃣ REALTIME (PRIVATE CHANNEL)
    * -------------------------------------------------- */
   useEffect(() => {
-    if (!id) return;
+    if (!id) return
 
-    const channel = `chat.${id}`;
-    console.log('📡 Listening:', channel);
+    const channel = `chat.${id}`
 
-    echo.private(channel)
-      .listen('MessageSent', (e: any) => {
-        const msg = e.message;
+      ; (async () => {
+        const token = await AsyncStorage.getItem('token')
+        if (!token) {
+          console.log('❌ TOKEN ALGA')
+          return
+        }
 
-        console.log('🔥 REALTIME MESSAGE:', msg);
+        // 🔑 TOKEN → Echo auth
+        echo.connector.options.auth.headers = {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        }
 
-        setMessages(prev => {
-          // давхар орохоос сэргийлнэ
-          if (prev.some(m => m.id === String(msg.id))) {
-            return prev;
-          }
+        echo.connect()
 
-          return [
-            {
-              id: String(msg.id),
-              text: msg.message,
-              isMe: msg.user_id === myUserIdRef.current,
-              created_at: msg.created_at,
-            },
-            ...prev,
-          ];
-        });
-      });
+        echo.private(channel)
+          .listen('MessageSent', (e: any) => {
+            const msg = e.message
+
+            setMessages(prev => {
+              // 🔒 duplicate хамгаалалт
+              if (prev.some(m => m.id === String(msg.id))) {
+                return prev
+              }
+
+              return [
+                {
+                  id: String(msg.id),
+                  text: msg.message,
+                  isMe: msg.user_id === myUserIdRef.current,
+                  created_at: msg.created_at,
+                },
+                ...prev,
+              ]
+            })
+          })
+
+        // DEBUG (хүсвэл устга)
+        echo.connector.pusher.connection.bind('connected', () => {
+          console.log('✅ WS CONNECTED')
+        })
+      })()
 
     return () => {
-      echo.leave(`private-${channel}`);
-    };
-  }, [id]);
+      echo.leave(`private-${channel}`)
+      echo.disconnect()
+    }
+  }, [id])
 
+  /* --------------------------------------------------
+   * 4️⃣ UI
+   * -------------------------------------------------- */
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ChatHeader chatId={String(id)} />
@@ -137,23 +145,18 @@ export default function ChatRoomScreen() {
       >
         <FlatList
           data={messages}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           renderItem={({ item }) => <ChatBubble message={item} />}
           contentContainerStyle={styles.messages}
           inverted
         />
 
         <View style={{ paddingBottom: insets.bottom }}>
-          <ChatInput
-            chatId={Number(id)}
-            onSent={(text: string) => {
-              
-            }}
-          />
+          <ChatInput chatId={Number(id)} />
         </View>
       </KeyboardAvoidingView>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -168,4 +171,4 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 8,
   },
-});
+})
