@@ -17,7 +17,7 @@ export const echo = new Echo({
   forceTLS: false,
   enabledTransports: ['ws'],
 
-  authEndpoint: 'http://192.168.1.28/api/broadcasting/auth',
+  authEndpoint: 'http://192.168.1.27/api/broadcasting/auth',
   autoConnect: false,
   auth: {
     headers: {

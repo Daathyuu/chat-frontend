@@ -1,4 +1,4 @@
-const BASE_URL = 'http://192.168.1.28'
+const BASE_URL = 'http://192.168.1.27'
 
 export function withBaseUrl(path?: string | null) {
   if (!path) return undefined

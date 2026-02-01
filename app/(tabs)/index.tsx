@@ -1,46 +1,40 @@
-import DrinkSetCard from '@/components/drinkMenuItem';
-import FeaturedCard from '@/components/featuredCard';
-import HomeSlider from '@/components/homeSlider';
-import ServiceCategoryCard from '@/components/serviceCategoryCard';
-import { Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router'
+import { useEffect, useState } from 'react'
+import {
+  Alert,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
-const DEFAULT_SLIDES = [
-  { id: '1', image: 'https://picsum.photos/800/400?1' },
-  { id: '2', image: 'https://picsum.photos/800/400?2' },
-  { id: '3', image: 'https://picsum.photos/800/400?3' },
-];
-const FEATURED = [
-  {
-    id: 'd1',
-    name: 'Ari',
-    role: 'Strip dancer',
-    rating: 4.9,
-    avatar: 'https://i.pravatar.cc/150?img=12',
-  },
-  {
-    id: 'd2',
-    name: 'Luna',
-    role: 'Strip dancer',
-    rating: 4.8,
-    avatar: 'https://i.pravatar.cc/150?img=13',
-  },
-  {
-    id: 'd3',
-    name: 'Luna',
-    role: 'Strip dancer',
-    rating: 4.8,
-    avatar: 'https://i.pravatar.cc/150?img=14',
-  },
-  {
-    id: 'd4',
-    name: 'Luna',
-    role: 'Strip dancer',
-    rating: 4.8,
-    avatar: 'https://i.pravatar.cc/150?img=15',
-  },
-];
+import DrinkSetCard from '@/components/drinkMenuItem'
+import FeaturedCard from '@/components/featuredCard'
+import HomeSlider from '@/components/homeSlider'
+import ServiceCategoryCard from '@/components/serviceCategoryCard'
+
+import { getDancers } from '@/lib/api'
+
+/* ================= TYPES ================= */
+
+type Dancer = {
+  id: number
+  name: string
+  avatar: string | null
+  phone: string
+  pivot: {
+    status: string
+    dancer_schedule_id: number
+    user_id: number
+    finished_at: string | null
+    created_at: string
+    updated_at: string
+  }
+}
+
+/* ================= STATIC DATA ================= */
 
 const SERVICES = [
   {
@@ -75,7 +69,7 @@ const SERVICES = [
     bg: '#0984E3',
     onPress: () => Alert.alert('Tips & gifts', 'Функц удахгүй'),
   },
-];
+]
 
 const DRINK_SETS = [
   {
@@ -84,12 +78,7 @@ const DRINK_SETS = [
     desc: '2–3 хүн суухад тохиромжтой',
     price: '180,000₮',
     badge: 'POPULAR',
-    items: [
-      'Whiskey x1',
-      'Vodka x1',
-      'Soft drink x2',
-      'Ice + Lemon',
-    ],
+    items: ['Whiskey x1', 'Vodka x1', 'Soft drink x2', 'Ice + Lemon'],
   },
   {
     id: 'set2',
@@ -116,71 +105,117 @@ const DRINK_SETS = [
       'Ice bucket',
     ],
   },
-];
+]
 
+/* ================= SCREEN ================= */
 
 export default function HomeScreen() {
-  const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets()
+  const router = useRouter()
+
+  const [dancers, setDancers] = useState<Dancer[]>([])
+  const [loading, setLoading] = useState(true)
+
+  /* ================= FETCH ================= */
+
+  useEffect(() => {
+    const fetchDancers = async () => {
+      try {
+        const res = await getDancers()
+
+        // API чинь ARRAY буцааж байна
+        const workingGirls = Array.isArray(res)
+          ? res.filter(d => d.pivot?.status === 'working')
+          : []
+
+        setDancers(workingGirls)
+      } catch (e) {
+        Alert.alert('Алдаа', 'Dancer татаж чадсангүй')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDancers()
+  }, [])
 
   return (
     <ScrollView
       style={styles.container}
-
+      contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* 🔄 Slider */}
+      {/* SLIDER */}
       <HomeSlider />
 
-      {/* ⭐ Featured dancers */}
+      {/* FEATURED */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
-          Өнөөдрийн GIRLS
+          Өнөөдөр гарах Girls
         </Text>
 
-        <FlatList
-          data={FEATURED}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <FeaturedCard item={item} />}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        />
+        {loading ? (
+          <Text style={styles.infoText}>Уншиж байна...</Text>
+        ) : dancers.length === 0 ? (
+          <Text style={styles.infoText}>
+            Одоогоор ажиллаж байгаа dancer алга
+          </Text>
+        ) : (
+          <FlatList
+            data={dancers}
+            horizontal
+            keyExtractor={item => String(item.id)}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingTop: 12,
+            }}
+            renderItem={({ item }) => (
+              <FeaturedCard
+                dancer={item}
+                onPress={() =>
+                  router.push({
+                    pathname: '/dancer/[id]',
+                    params: { id: item.id },
+                  })
+                }
+              />
+            )}
+          />
+        )}
       </View>
 
+      {/* DRINK SET */}
       <Text style={[styles.sectionTitle, styles.listTitle]}>
         Drink Set
       </Text>
 
-      {DRINK_SETS.map((item) => (
+      {DRINK_SETS.map(item => (
         <DrinkSetCard key={item.id} item={item} />
       ))}
 
-      {/* 🧩 Other services */}
+      {/* SERVICES */}
       <Text style={[styles.sectionTitle, styles.listTitle]}>
         Бусад үйлчилгээ
       </Text>
 
-      {SERVICES.map((item) => (
+      {SERVICES.map(item => (
         <ServiceCategoryCard key={item.id} item={item} />
       ))}
-
-
     </ScrollView>
-  );
+  )
 }
+
+/* ================= STYLES ================= */
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9f9f9',
   },
-
-  content: {
-    paddingBottom: 24, // 🔥 доод хэсэгт зай
-  },
-
   section: {
     marginTop: 16,
   },
-
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
@@ -188,17 +223,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 10,
   },
-
   listTitle: {
     marginTop: 24,
   },
-
-  menuWrapper: {
-    marginTop: 8,
-    marginHorizontal: 16,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#fff',
-    marginBottom: 24,
+  infoText: {
+    paddingHorizontal: 16,
+    color: '#777',
   },
-});
+})

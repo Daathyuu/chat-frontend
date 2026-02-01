@@ -1,4 +1,5 @@
 import { getChats } from '@/lib/api'
+import { withBaseUrl } from '@/lib/media'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -10,7 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-
 type Props = {
   chatId: string
 }
@@ -49,7 +49,7 @@ export default function ChatHeader({ chatId }: Props) {
               name: chat.user.name,
               avatar:
                 chat.user.avatar ??
-                `https://i.pravatar.cc/150?u=${chat.user.id}`,
+                withBaseUrl('/images/noavatar.jpg'),
             })
           }
         } finally {
@@ -78,7 +78,7 @@ export default function ChatHeader({ chatId }: Props) {
       ) : (
         <TouchableOpacity
           style={styles.user}
-           onPress={() => router.push(`/dancer/${user?.id}`)}
+          onPress={() => router.push(`/dancer/${user?.id}`)}
         >
           <Image
             source={{ uri: user?.avatar }}

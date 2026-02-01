@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://192.168.1.28/api';
+const BASE_URL = 'http://192.168.1.27/api';
 
 export type ApiResponse = {
   message?: string;
@@ -219,4 +219,11 @@ export function changeUserPin(payload: {
   pin: string
 }) {
   return post('/user/pin/change', payload, true)
+}
+export function getSliders() {
+  return get('/sliders',true)
+}
+
+export function getDancers() {
+  return get('/dancers', true) // auth шаардлагатай бол true
 }

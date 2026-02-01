@@ -1,86 +1,183 @@
-import { useRef, useState } from 'react';
-import { Dimensions, FlatList, Image, StyleSheet, View } from 'react-native';
+import { getSliders } from '@/lib/api'
+import { withBaseUrl } from '@/lib/media'
+import { useEffect, useRef, useState } from 'react'
+import {
+  Dimensions,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get('window')
 
-const SLIDES = [
-  { id: '1', image: 'https://picsum.photos/800/400?random=1' },
-  { id: '2', image: 'https://picsum.photos/800/400?random=2' },
-  { id: '3', image: 'https://picsum.photos/800/400?random=3' },
-];
+type ApiSlider = {
+  id: number
+  title?: string
+  image: string
+  link?: string | null
+}
+
+type SliderItem = {
+  id: number
+  title?: string
+  image: string
+  link?: string | null
+}
 
 export default function HomeSlider() {
-  const [index, setIndex] = useState(0);
-  const listRef = useRef<FlatList>(null);
+  const [data, setData] = useState<SliderItem[]>([])
+  const [index, setIndex] = useState(0)
+  const ref = useRef<FlatList<SliderItem>>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  /* ===== FETCH ===== */
+  useEffect(() => {
+    let mounted = true
+
+    getSliders()
+      .then((res: any) => {
+        const raw = Array.isArray(res) ? res : res?.data ?? []
+
+        const mapped: SliderItem[] = raw
+          .filter((item: any) => !!item.image)
+          .map((item: any) => ({
+            id: item.id,
+            title: item.title,
+            link: item.link ?? null,
+            image: withBaseUrl('/storage/' + item.image)!,
+          }))
+          
+          
+
+        if (mounted) setData(mapped)
+      })
+      .catch((e) => {
+        console.log('SLIDER API ERROR', e)
+        if (mounted) setError(true)
+      })
+      .finally(() => {
+        if (mounted) setLoading(false)
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  /* ===== AUTO SLIDE ===== */
+  useEffect(() => {
+    if (!data.length) return
+
+    const t = setInterval(() => {
+      const next = (index + 1) % data.length
+      ref.current?.scrollToIndex({ index: next, animated: true })
+      setIndex(next)
+    }, 4000)
+
+    return () => clearInterval(t)
+  }, [index, data])
+
+  if (loading) {
+    return (
+      <View style={{ height: 220, alignItems: 'center', justifyContent: 'center' }}>
+        <Text>Slider loading...</Text>
+      </View>
+    )
+  }
+
+  if (error || !data.length) {
+    return null // эсвэл placeholder
+  }
 
   return (
-    <View style={styles.wrapper}>
+    <View>
       <FlatList
-        ref={listRef}
-        data={SLIDES}
-        keyExtractor={(item) => item.id}
+        ref={ref}
+        data={data}
+        keyExtractor={(i) => String(i.id)}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(e) => {
           const i = Math.round(
             e.nativeEvent.contentOffset.x / width
-          );
-          setIndex(i);
+          )
+          setIndex(i)
         }}
         renderItem={({ item }) => (
-          <Image
-            source={{ uri: item.image }}
-            style={styles.image}
-            resizeMode="cover"
-          />
+          <View style={{ width }}>
+            <Image
+              source={{ uri: item.image }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+
+            {item.title ? (
+              <View style={styles.overlay}>
+                {/* <Text style={styles.title}>{item.title}</Text> */}
+              </View>
+            ) : null}
+          </View>
         )}
       />
 
-      {/* pagination */}
+      {/* DOTS */}
       <View style={styles.dots}>
-        {SLIDES.map((_, i) => (
+        {data.map((_, i) => (
           <View
             key={i}
             style={[
               styles.dot,
-              index === i && styles.activeDot,
+              i === index
+                ? styles.dotActive
+                : styles.dotInactive,
             ]}
           />
         ))}
       </View>
     </View>
-  );
+  )
 }
+
 const styles = StyleSheet.create({
-  wrapper: {
-    width: '100%',
-    height: 220, // 🔥 ЭНЭ БАЙХГҮЙ БОЛ ХАРАГДАХГҮЙ
-  },
-
   image: {
-    width,
+    width: '100%',
     height: 220,
+    backgroundColor: '#eee',
   },
-
+  overlay: {
+    position: 'absolute',
+    left: 16,
+    bottom: 16,
+    right: 16,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+  },
   dots: {
     position: 'absolute',
     bottom: 12,
-    width: '100%',
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
+    marginTop: 8,
   },
-
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginHorizontal: 4,
   },
-
-  activeDot: {
-    backgroundColor: '#fff',
-    width: 10,
+  dotActive: {
+    backgroundColor: '#111',
   },
-});
+  dotInactive: {
+    backgroundColor: '#ccc',
+  },
+})
